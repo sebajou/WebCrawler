@@ -9,20 +9,26 @@ namespace ConsoleApplication1
     using System.IO;
     using System.Net;
 
+    /// <summary>
+    /// Définit les constantes.
+    /// </summary>
     static class Const
     {
+        /// <summary>
+        /// 2^8 -1.
+        /// </summary>
         public const int ADDRESS_MAX = 255;
 
         /// <summary>
-        /// {0}: DateTime.Now
-        /// {1}: URL
+        /// {0}: DateTime.Now.
+        /// {1}: URL.
         /// </summary>
         public const string INTRODUCTION_MESSAGE = "{0}: Recherche {1}";
 
         /// <summary>
-        /// {0}: DateTime.Now
-        /// {1}: URL
-        /// {2}: Message error
+        /// {0}: DateTime.Now.
+        /// {1}: URL.
+        /// {2}: Message error.
         /// </summary>
         public const string ERROR_CONNECTION_MESSAGE = "{0}: Erreur de connexion {1} {2}";
 
@@ -30,6 +36,10 @@ namespace ConsoleApplication1
         public const string ALPHA_CHARS = "abcdefghijklmnopqrstuvwxyz";
     }
 
+
+    /// <summary>
+    /// Point d'entré de l'application console.
+    /// </summary>
     class Program
     {
         static void Main(string[] args)
@@ -54,7 +64,12 @@ namespace ConsoleApplication1
             Main(new string[] { url, searchString });
         }
 
-        static void AppendInFile(string path, string lineToAppend)
+        /// <summary>
+        /// Ecrit dans le fichier txt les logs.
+        /// </summary>
+        /// <param name="path">Chemin d'accès au fichier.</param>
+        /// <param name="lineToAppend">Ligne à ajouter.</param>
+        public static void AppendInFile(string path, string lineToAppend)
         {
             if (!File.Exists(path))
             {
@@ -73,7 +88,13 @@ namespace ConsoleApplication1
             }
         }
 
-        static string PageContains(string url, string searchString)
+        /// <summary>
+        /// Détermine si la page à l'url contient le terme recherché.
+        /// </summary>
+        /// <param name="url">URL.</param>
+        /// <param name="searchString">Terme recherché.</param>
+        /// <returns>Les lignes qui contiennent le terme recherché.</returns>
+        public static string PageContains(string url, string searchString)
         {
             try
             {
@@ -99,14 +120,13 @@ namespace ConsoleApplication1
                         foundString.AppendLine(line);
                     }
                 }
-                return foundString.ToString();
 
+                return foundString.ToString();
             }
             catch (Exception e)
             {
                 return string.Format(Const.ERROR_CONNECTION_MESSAGE, DateTime.Now, url, e.Message);
             }
         }
-
     }
 }
