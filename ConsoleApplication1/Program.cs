@@ -23,7 +23,7 @@ namespace ConsoleApplication1
         /// {0}: DateTime.Now.
         /// {1}: URL.
         /// </summary>
-        public const string INTRODUCTION_MESSAGE = "{0}: Recherche {1}";
+        public const string INTRODUCTION_MESSAGE = "{0}: Recherche {1}\n";
 
         /// <summary>
         /// {0}: DateTime.Now.
@@ -32,10 +32,11 @@ namespace ConsoleApplication1
         /// </summary>
         public const string ERROR_CONNECTION_MESSAGE = "{0}: Erreur de connexion {1} {2}";
 
-
+        /// <summary>
+        /// Caractères disponibles pour les adresses internet.
+        /// </summary>
         public const string ALPHA_CHARS = "abcdefghijklmnopqrstuvwxyz";
     }
-
 
     /// <summary>
     /// Point d'entré de l'application console.
@@ -44,24 +45,28 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            string url;
+            string mainHost;
             string searchString;
 
             if (args.Count() == 2)
             {
-                url = AddressBuilder.GetNextIpv4Address(args[0]);
+                mainHost = AddressBuilder.GetNextAlphaNumAddress(args[0]);
                 searchString = args[1];
             }
             else
             {
-                url = Console.ReadLine();
+                mainHost = Console.ReadLine();
                 searchString = Console.ReadLine();
             }
 
-            string result = PageContains(url, searchString);
-            AppendInFile(@"C:\Users\clement\output.txt", result);
+            UriBuilder uri = new UriBuilder() { Host = mainHost + ".fr", Scheme = Uri.UriSchemeHttp };
 
-            Main(new string[] { url, searchString });
+            string result = PageContains(uri.Uri.ToString(), searchString);
+            string robotFile = PageContains(uri.Uri.ToString() + "/robots.txt");
+
+            AppendInFile(@"C:\Users\clement\output.txt", result, robotFile);
+
+            Main(new string[] { mainHost, searchString });
         }
 
         /// <summary>
@@ -69,21 +74,27 @@ namespace ConsoleApplication1
         /// </summary>
         /// <param name="path">Chemin d'accès au fichier.</param>
         /// <param name="lineToAppend">Ligne à ajouter.</param>
-        public static void AppendInFile(string path, string lineToAppend)
+        public static void AppendInFile(string path, params string[] lineToAppend)
         {
             if (!File.Exists(path))
             {
                 // Create a file to write to.
                 using (StreamWriter sw = File.CreateText(path))
                 {
-                    sw.WriteLine(lineToAppend);
+                    foreach (var line in lineToAppend)
+                    {
+                        sw.WriteLine(line);
+                    }
                 }
             }
             else
             {
                 using (StreamWriter sw = File.AppendText(path))
                 {
-                    sw.WriteLine(lineToAppend);
+                    foreach (var line in lineToAppend)
+                    {
+                        sw.WriteLine(line);
+                    }
                 }
             }
         }
@@ -94,7 +105,7 @@ namespace ConsoleApplication1
         /// <param name="url">URL.</param>
         /// <param name="searchString">Terme recherché.</param>
         /// <returns>Les lignes qui contiennent le terme recherché.</returns>
-        public static string PageContains(string url, string searchString)
+        public static string PageContains(string url, string searchString = null)
         {
             try
             {
@@ -102,22 +113,34 @@ namespace ConsoleApplication1
 
                 //WebProxy webProxy = WebProxy.GetDefaultProxy();
                 //webRequest.Proxy = webProxy;
-
+                webRequest.Timeout = 10000;
                 Stream objStream = webRequest.GetResponse().GetResponseStream();
                 StreamReader objReader = new StreamReader(objStream);
 
                 string line = string.Empty;
                 int i = 0;
 
-                StringBuilder foundString = new StringBuilder(string.Format(Const.INTRODUCTION_MESSAGE, DateTime.Now, url));
+                string introduction = string.Format(Const.INTRODUCTION_MESSAGE, DateTime.Now, url);
+                StringBuilder foundString = new StringBuilder(introduction);
+                ColoredConsoleWrite(ConsoleColor.Green, introduction, true);
 
-                while (!objReader.EndOfStream)
+                if (searchString == null)
                 {
-                    i++;
-                    line = objReader.ReadLine();
-                    if (line.Contains(searchString))
+                    line = objReader.ReadToEnd();
+                    foundString.AppendLine(line);
+                    ColoredConsoleWrite(ConsoleColor.Cyan, line, true);
+                }
+                else
+                {
+                    while (!objReader.EndOfStream)
                     {
-                        foundString.AppendLine(line);
+                        i++;
+                        line = objReader.ReadLine();
+                        if (line.Contains(searchString))
+                        {
+                            foundString.AppendLine(line);
+                            ColoredConsoleWrite(ConsoleColor.White, line, true);
+                        }
                     }
                 }
 
@@ -125,7 +148,21 @@ namespace ConsoleApplication1
             }
             catch (Exception e)
             {
-                return string.Format(Const.ERROR_CONNECTION_MESSAGE, DateTime.Now, url, e.Message);
+                string errorMessage = string.Format(Const.ERROR_CONNECTION_MESSAGE, DateTime.Now, url, e.Message);
+                ColoredConsoleWrite(ConsoleColor.Red, errorMessage, true);
+                return errorMessage;
+            }
+        }
+
+        public static void ColoredConsoleWrite(ConsoleColor color, string text, bool writeLine = false)
+        {
+            ConsoleColor originalColor = Console.ForegroundColor;
+            Console.ForegroundColor = color;
+            Console.Write(text);
+            Console.ForegroundColor = originalColor;
+            if (writeLine)
+            {
+                Console.Write("\n");
             }
         }
     }
