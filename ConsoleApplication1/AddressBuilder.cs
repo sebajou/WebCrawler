@@ -7,16 +7,43 @@ using System.Threading.Tasks;
 
 namespace ConsoleApplication1
 {
+    using System.Text.RegularExpressions;
+
     public class AddressBuilder
     {
-        public static string GetNextAlphaNumAddress(string host)
+        public static string GetNextAlphaNumAddress(string uri)
         {
-            if (host.Count() > 100)
+            if (!Uri.IsWellFormedUriString(uri, UriKind.Absolute))
+            {
+                throw new InvalidDataException("url invalide");
+            }
+
+            if (uri.Count() > 100)
             {
                 throw new InvalidDataException("l'adresse a un format de plus de 100 charactères");
             }
 
-            return IncrementAlphaNumAddress(host);
+            Regex regex = new Regex(Const.URL_PATTERN);
+
+            var regexMatch = regex.Match(uri);
+
+            string host = null;
+            for (int i = 0; i < regexMatch.Groups[3].Captures.Count - 1; i++)
+            {
+                host += regexMatch.Groups[3].Captures[i];
+            }
+
+            string incrementedHost = IncrementAlphaNumAddress(host);
+
+            return Regex.Replace(
+                uri, 
+                Const.URL_PATTERN, 
+                m => 
+                m.Groups[1].Value 
+                + m.Groups[2].Value 
+                + incrementedHost 
+                + m.Groups[3].Captures[m.Groups[3].Captures.Count - 1] 
+                + m.Groups[4].Value);
         }
 
         static string IncrementAlphaNumAddress(string host)
@@ -28,14 +55,13 @@ namespace ConsoleApplication1
                 host = host.Remove(host.Count() - 1, 1) + Const.ALPHA_CHARS.ElementAt(Const.ALPHA_CHARS.IndexOf(lastChar) + 1);
                 return host;
             }
-            else
+
+            if (host.Count() == 1)
             {
-                if (host.Count() == 1)
-                {
-                    return string.Empty + Const.ALPHA_CHARS.First() + Const.ALPHA_CHARS.First();
-                }
-                return IncrementAlphaNumAddress(host.Remove(host.Count() - 1, 1)) + Const.ALPHA_CHARS.First();
+                return string.Empty + Const.ALPHA_CHARS.First() + Const.ALPHA_CHARS.First();
             }
+
+            return IncrementAlphaNumAddress(host.Remove(host.Count() - 1, 1)) + Const.ALPHA_CHARS.First();
         }
 
         public static string GetNextIpv4Address(string address)
@@ -49,26 +75,25 @@ namespace ConsoleApplication1
                 throw new InvalidDataException("l'adresse a un format invalide");
             }
 
-            return IncrementAddress(addressArray);
+            return IncrementIpv4Address(addressArray);
         }
 
-        static string IncrementAddress(int[] address, int focus = 3)
+        static string IncrementIpv4Address(int[] address, int focus = 3)
         {
             if (address[focus] != Const.ADDRESS_MAX)
             {
                 address[focus]++;
                 return GetAddressFromArray(address);
             }
-            else
+
+            address[focus] = 0;
+            focus--;
+            if (focus < 0)
             {
-                address[focus] = 0;
-                focus--;
-                if (focus < 0)
-                {
-                    throw new InvalidDataException("Toutes les adresses ont été parcourues");
-                }
-                return IncrementAddress(address, focus);
+                throw new InvalidDataException("Toutes les adresses ont été parcourues");
             }
+
+            return IncrementIpv4Address(address, focus);
         }
 
         static string GetAddressFromArray(int[] address)

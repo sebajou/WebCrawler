@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace ConsoleApplication1
 {
+    using System.Configuration;
     using System.IO;
     using System.Net;
 
@@ -36,6 +37,15 @@ namespace ConsoleApplication1
         /// Caractères disponibles pour les adresses internet.
         /// </summary>
         public const string ALPHA_CHARS = "abcdefghijklmnopqrstuvwxyz";
+
+        /// <summary>
+        /// Expression régulière pour une url.
+        /// 1 : http:// ou https:// ou ""
+        /// 2 : www ou ""
+        /// 3 : [] \w- suparé par des points
+        /// 4 : Le chemin relatif
+        /// </summary>
+        public const string URL_PATTERN = @"(http://|https://)?(www)?(\.?[\w-]+)+(/[\w- ./?%&=]*)?";
     }
 
     /// <summary>
@@ -45,28 +55,28 @@ namespace ConsoleApplication1
     {
         static void Main(string[] args)
         {
-            string mainHost;
+            string url;
             string searchString;
 
             if (args.Count() == 2)
             {
-                mainHost = AddressBuilder.GetNextAlphaNumAddress(args[0]);
+                url = AddressBuilder.GetNextAlphaNumAddress(args[0]);
                 searchString = args[1];
             }
             else
             {
-                mainHost = Console.ReadLine();
+                url = Console.ReadLine();
                 searchString = Console.ReadLine();
             }
 
-            UriBuilder uri = new UriBuilder() { Host = mainHost + ".fr", Scheme = Uri.UriSchemeHttp };
+            Uri uri = new Uri(url);
 
-            string result = PageContains(uri.Uri.ToString(), searchString);
-            string robotFile = PageContains(uri.Uri.ToString() + "/robots.txt");
+            string result = PageContains(url, searchString);
+            string robotFile = PageContains(uri.AbsoluteUri + "robots.txt");
+             
+            AppendInFile( ConfigurationManager.AppSettings["outputFilePath"], result, robotFile);
 
-            AppendInFile(@"C:\Users\clement\output.txt", result, robotFile);
-
-            Main(new string[] { mainHost, searchString });
+            Main(new[] { url, searchString });
         }
 
         /// <summary>
